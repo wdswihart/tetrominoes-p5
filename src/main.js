@@ -7,8 +7,34 @@ let cellSize = canvasHeight * cellRatio;
 let canvas;
 let blocks = [];
 let frameCount = 0;
-let isGameOver = false;
+let gameIsOver = false;
 
+function checkBlockCollision(id, x, y, blockWidth, blockHeight) {
+    const xMod = x + blockWidth;
+    const yMod = y + blockHeight;
+    for (let block of blocks) {
+        if (block.id != id) {
+            if ((x > block.x && x < block.x + block.width) ||
+                (xMod > block.x && xMod < block.x + block.width ||
+                (x == block.x && xMod == block.x + block.width))) {
+                    if (yMod == block.y) {
+                        return true;
+                    }
+                }
+        }
+    }
+    return false;
+}
+
+function validateMove(x, y, blockWidth, blockHeight) {
+    if (x < 0 || x + blockWidth > canvasWidth) {        
+        return false;
+    } else if (y + blockHeight > canvasHeight) {
+        return false;
+    }
+    return true;
+}
+ 
 function keyPressed() {
     const mover = blocks.filter(block => block.shouldMove)[0];
     if (mover) {
@@ -18,33 +44,51 @@ function keyPressed() {
         }
         // A or Left
         else if (keyCode == 65 || keyCode == 37) {
-            mover.x -= cellSize;
+            if (validateMove(mover.x - cellSize, mover.y, mover.width,
+                 mover.height)) {
+                    mover.x -= cellSize;
+                }
         } 
         // S or Down
         else if (keyCode == 83 || keyCode == 40) {
-            mover.y += cellSize;
+            if (validateMove(mover.x, mover.y + cellSize, mover.width,
+                mover.height)) {
+                    mover.y += cellSize;
+                }
         } 
         // D or Right
         else if (keyCode == 68 || keyCode == 39) {
-            mover.x += cellSize;
+            if (validateMove(mover.x + cellSize, mover.y, mover.width, 
+                mover.height)) {
+                    mover.x += cellSize;
+                }
         } 
         // Space
         else if (keyCode == 32) { // SPACE
-            mover.y = canvasHeight - cellSize;
+            let minY = canvasHeight ;
+            let xMod = mover.x + mover.width;
+            for (let block of blocks) {
+                if (block.id != mover.id) {
+                    if ((mover.x > block.x && mover.x < block.x + block.width) ||
+                    (xMod > block.x && xMod < block.x + block.width ||
+                    (mover.x == block.x && xMod == block.x + block.width))) {
+                        block.y < minY ? minY = block.y : null;
+                    }
+                }
+            }
+            mover.y = minY - cellSize;
         }
     }
 }
 
 function checkBlocks() {
     for (let i = 0; i < blocks.length; i++) {
-        for (let j = 0; j < blocks[i].cells.length; j++) {
-            let checkCell = blocks[i].cells[j];
-            if (blocks[i].shouldMove) {
-                if (checkCell.y + checkCell.size >= canvasHeight) {
+        if (blocks[i].shouldMove) {
+            if (checkBlockCollision(blocks[i].id, blocks[i].x, blocks[i].y,
+                blocks[i].width, blocks[i].height)) {
                     blocks[i].shouldMove = false;
                     createBlock();
                 }
-            }
         }
     }
 }
@@ -78,19 +122,32 @@ function createBlock() {
     blocks.push(block);
 }
 
+function gameOver() {
+    gameIsOver = true;
+}
+
 function setup() {
     canvas = createCanvas(canvasWidth, canvasHeight);
     createBlock();
     update();
+
+    const button = createButton('Stop');
+    button.mouseClicked(gameOver);
 }
 
 function update() {
     for (let i = 0; i < blocks.length; i++) {
         if (blocks[i].shouldMove) {
-            blocks[i].y += cellSize;
+            if (validateMove(blocks[i].x, blocks[i].y + cellSize, 
+                blocks[i].width, blocks[i].height)) {
+                    blocks[i].y += cellSize;
+            } else {
+                blocks[i].shouldMove = false;
+                createBlock();
+            }
         }
     }
-    if (!isGameOver) {
+    if (!gameIsOver) {
         setTimeout(update, gameSpeed);
     }
 }

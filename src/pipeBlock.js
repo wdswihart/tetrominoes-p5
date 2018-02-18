@@ -10,6 +10,8 @@ class PipeBlock extends Block {
                 color(0, 255, 0)
             ));
         }
+        this.width = cellSize * 4;
+        this.height = cellSize;
     }
 
     update() {

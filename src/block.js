@@ -7,6 +7,8 @@ class Block {
         this.orientation = orientation;
         this.shouldMove = shouldMove;
         this.cells;
+        this.width;
+        this.height;
     }
 
     update() {}
