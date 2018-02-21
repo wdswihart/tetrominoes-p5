@@ -1,15 +1,12 @@
 class Cell {
-    constructor(x, y, size, color) {
-        this.x = x;
-        this.y = y;
-        this.size = size;
+    constructor(i, j, color) {
+        this.i = i;
+        this.j = j;
         this.color = color;
     }
 
-    show() {
-        push();
-        fill(this.color);
-        rect(this.x, this.y, this.size, this.size)
-        pop();
+    setIndices(i, j) {
+        this.i = i;
+        this.j = j;
     }
 }
