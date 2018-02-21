@@ -1,16 +1,25 @@
-let gameSpeed = 500;
-let canvasWidth = 400;
-let canvasHeight = 400;
+let gameSpeed = 1000;
+const maxWidth = 400; // pixels
+const maxHeight = 600;
+let canvasWidth = window.innerWidth < maxWidth ? window.innerWidth - 15 : maxWidth;
+let canvasHeight = canvasWidth * (3 / 2);
 let cellRatio = 0.05;
 let cellSize = Math.floor(canvasWidth * cellRatio);
 
 let candvas;
 let grid;
-let mover;
+let mover = null;
 let blocks = [];
 let frameCount = 0;
 let gameIsOver = false;
- 
+let score = 0;
+let scoreP;
+let level = 1;
+let levelP;
+let messageP;
+let ppButton;
+let gameIsPaused = false;
+
 function create2DArray(rows, cols) {
     const arr = new Array(cols);
     for (let i = 0; i < cols; i++) {
@@ -46,7 +55,12 @@ function createBlock() {
         block = new TeeBlock(i, j);
     }
     for (let cell of block.cells) {
-        grid[cell.i][cell.j] = cell;
+        if (grid[cell.i][cell.j] == null) {
+            grid[cell.i][cell.j] = cell;
+        } else {
+            gameIsOver = true;
+            return;
+        }
     }
     return block;
 }
@@ -103,9 +117,6 @@ function validateMove(dir) {
             tester = grid[cell.i][cell.j + 1];
             if ((mover.cells.indexOf(tester) == -1 && tester != null) ||
                 cell.j + 1 >= grid[cell.i].length) {
-                    if (cell.j == 0) {
-                        gameIsOver = true;
-                    }
                     mover = null;
                     return false;
             }
@@ -205,6 +216,7 @@ function keyPressed() {
 }
 
 function checkRows() {
+    let completedCount = 0;
     for (let j = grid[0].length - 1; j >= 0; j--) {
         let isFull = true;
         for (let i = 0; i < grid.length && isFull == true; i++) {
@@ -213,7 +225,7 @@ function checkRows() {
             }
         }
         if (isFull) {
-            j += 1;
+            completedCount += 1;
             for (let k = j; k > 0; k--) {
                 for (let i = 0; i < grid.length; i++) {
                     grid[i][k] = grid[i][k - 1];
@@ -225,38 +237,90 @@ function checkRows() {
             for (let i = 0; i < grid.length; i++) {
                 grid[i][0] = null;
             }
+            j += 1; // include the bottom row after drop
+        }
+    }
+    return completedCount;
+}
+
+function checkLevelUp() {
+    if (level < 10) {
+        gameSpeed = 1000 - 100 * level;
+        if (score > (level * level) * 350) {
+            level++;
         }
     }
 }
 
+function updateInfoPanel() {
+    scoreP.html('Score: ' + score);
+    levelP.html('Level: ' + level);
+}
+
+function createInfoPanel() {
+    let div = createDiv('');
+    messageP = createP('');
+    scoreP = createP('Score: 0');
+    levelP = createP('Level: 1');
+    div.child(messageP);
+    div.child(scoreP);
+    div.child(levelP);
+}
+
+function pause() {
+    gameIsPaused = true;
+    messageP.style('color: green');
+    messageP.html('PAUSED');
+    ppButton.html('Play');
+    ppButton.mouseClicked(false);
+    ppButton.mouseClicked(play);
+}
+
+function play() {
+    gameIsPaused = false;
+    messageP.html('');
+    ppButton.html('Pause');
+    ppButton.mouseClicked(false);    
+    ppButton.mouseClicked(pause);
+    setTimeout(update, gameSpeed);
+}
+
 function setup() {
     canvas = createCanvas(canvasWidth, canvasHeight);
-    grid = create2DArray(canvasHeight / cellSize, canvasWidth / cellSize);
-    mover = createBlock();
+    createInfoPanel();
+    ppButton = createButton('Pause');
+    ppButton.mouseClicked(pause);
 
-    createDiv('');
-    let button = createButton('Stop');
-    button.mouseClicked(() => gameIsOver = true);
-    
+    grid = create2DArray(Math.floor(canvasHeight / cellSize), 
+        Math.floor(canvasWidth / cellSize));
+    mover = createBlock();
     setTimeout(update, gameSpeed);
 }
 
 function update() {
     if (mover == null) {
-        checkRows();
+        score += 4;
+        score += Math.pow(4 * checkRows(), 2);
+        checkLevelUp();
         mover = createBlock();
     } else {
         fall();
     }
+
     if (!gameIsOver) {
-        setTimeout(update, gameSpeed);
+        if (!gameIsPaused) {
+            updateInfoPanel();
+            setTimeout(update, gameSpeed);
+        }
     } else {
-        console.log('Game Over!');
-        noLoop();
+        messageP.style('color: red');
+        messageP.html('Game Over!');
     }
 }
 
 function draw() {
     background(0);
-    drawCells();
+    if (!gameIsPaused) {
+        drawCells();
+    }
 }
